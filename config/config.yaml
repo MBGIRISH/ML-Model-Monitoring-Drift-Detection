@@ -1,0 +1,58 @@
+# ML Model Monitoring & Drift Detection Configuration
+# Author: M B GIRISH
+# Date: January 2026
+
+# Model Configuration
+model:
+  name: "churn_classifier"
+  type: "classification"
+  target_column: "Churn"
+  test_size: 0.2
+  random_state: 42
+
+# Data Drift Detection Thresholds
+data_drift:
+  psi_threshold: 0.2  # PSI > 0.2 indicates significant drift
+  kl_divergence_threshold: 0.5  # KL Divergence threshold
+  feature_drift_threshold: 0.15  # Individual feature drift threshold
+  window_size: 1000  # Number of samples per monitoring window
+
+# Concept Drift Detection Thresholds
+concept_drift:
+  performance_decay_threshold: 0.05  # 5% drop in performance
+  auc_drop_threshold: 0.03  # 3% drop in AUC
+  error_rate_increase: 0.1  # 10% increase in error rate
+  rolling_window_size: 500  # Samples for rolling window evaluation
+
+# Performance Monitoring Thresholds
+performance:
+  min_auc: 0.70  # Minimum acceptable AUC
+  min_accuracy: 0.75  # Minimum acceptable accuracy
+  max_rmse: null  # For regression tasks
+  alert_on_degradation: true
+  evaluation_window: 100  # Samples per evaluation window
+
+# Alerting Configuration
+alerts:
+  enabled: true
+  drift_alert_threshold: 0.2  # PSI threshold for alerts
+  performance_alert_threshold: 0.05  # Performance drop threshold
+  email_notifications: false
+  log_level: "INFO"
+
+# Retraining Configuration
+retraining:
+  auto_retrain: false  # Set to true for automatic retraining
+  min_samples_for_retrain: 1000
+  retrain_on_drift: true
+  retrain_on_performance_drop: true
+  model_comparison_metric: "auc"  # Metric to compare models
+
+# Paths
+paths:
+  data_dir: "data"
+  models_dir: "models"
+  artifacts_dir: "artifacts"
+  dashboards_dir: "dashboards"
+  logs_dir: "logs"
+
