@@ -45,6 +45,7 @@ logs/
 !requirements.txt
 !README.md
 !config/config.yaml
+!screenshots/*.png
 
 # Data (if sensitive)
 # data/*.csv

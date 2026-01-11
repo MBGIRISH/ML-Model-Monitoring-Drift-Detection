@@ -194,6 +194,10 @@ ML-Model-Monitoring-Drift-Detection/
 ├── dashboards/                  # Generated visualizations (generated)
 │   ├── feature_drift_*.png
 │   └── performance_trends_*.png
+├── screenshots/                 # Dashboard screenshots for documentation
+│   ├── overview_dashboard.png
+│   ├── performance_dashboard.png
+│   └── drift_detection_dashboard.png
 ├── logs/                        # Application logs (generated)
 ├── main.py                      # Main execution script
 ├── run_dashboard.py             # Streamlit dashboard launcher
@@ -258,17 +262,17 @@ Edit `config/config.yaml` to customize thresholds:
 ### Overview Dashboard
 The overview tab provides a comprehensive view of model health, including current performance metrics compared to baseline, drift status indicators, and a confusion matrix visualization.
 
-![Overview Dashboard](dashboards/feature_drift_20260108_113126.png)
+![Overview Dashboard](screenshots/overview_dashboard.png)
 
 ### Performance Monitoring
 Performance trends are tracked over time with interactive charts showing AUC, Accuracy, Precision, and Recall. Baseline reference lines enable quick comparison of current performance against established benchmarks.
 
-![Performance Dashboard](dashboards/performance_trends_20260108_113126.png)
+![Performance Dashboard](screenshots/performance_dashboard.png)
 
 ### Drift Detection Analysis
 Feature-level drift detection visualizes PSI scores for all features, with color-coding to indicate drift severity. Features are sorted by drift magnitude, making it easy to identify the most problematic features.
 
-![Drift Detection Dashboard](dashboards/feature_drift_20260108_112158.png)
+![Drift Detection Dashboard](screenshots/drift_detection_dashboard.png)
 
 ## Future Improvements
 
