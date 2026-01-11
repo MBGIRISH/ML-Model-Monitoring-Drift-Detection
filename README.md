@@ -3,116 +3,198 @@
 **Author**: M B GIRISH  
 **Date**: January 2026
 
-A production-ready platform for monitoring machine learning models in production. 
-It detects data drift and concept drift, tracks performance degradation over time, 
-and triggers alerts when retraining is needed.
+## Problem Statement
 
-## 📋 Table of Contents
+Machine learning models degrade in production environments due to evolving data distributions and changing relationships between features and targets. This degradation occurs silently, leading to poor predictions and business impact before teams realize the model has failed.
 
-- [Overview](#overview)
-- [Business Context](#business-context)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Components](#components)
-- [Streamlit Dashboard](#streamlit-dashboard)
-- [Understanding Drift](#understanding-drift)
-- [Production Deployment](#production-deployment)
-- [Troubleshooting](#troubleshooting)
+Traditional ML workflows focus on training and deployment but lack systematic monitoring mechanisms. Organizations need automated systems to:
+- Detect when input data distributions shift (data drift)
+- Identify when feature-target relationships change (concept drift)
+- Track performance degradation over time
+- Trigger alerts and retraining workflows when thresholds are exceeded
 
-## 🎯 Overview
+Success is measured by early detection of model degradation, reduced false positive alerts, and timely retraining decisions that maintain model performance above acceptable thresholds.
 
-This platform tries to answer the question: **"What happens after the model is deployed?"**
+## Objective
 
-In my experience, models work great initially but then start degrading. This system 
-helps catch those issues early.
+Develop a production-ready monitoring system that continuously tracks deployed ML models, detects drift using statistical methods, monitors performance metrics, and provides actionable alerts for retraining decisions. The system should be configurable, scalable, and provide both programmatic APIs and interactive dashboards for different stakeholder needs.
 
-Machine learning models degrade over time due to:
-- **Data Drift**: Changes in feature distributions (the input data changes)
-- **Concept Drift**: Changes in the relationship between features and target (P(Y|X) changes)
-- **Performance Decay**: Gradual degradation in model accuracy
+Key constraints:
+- Must work with classification models initially
+- Should handle batch monitoring scenarios
+- Configuration-driven thresholds for different business contexts
+- Minimal latency for drift detection calculations
 
-This platform continuously monitors these aspects and provides actionable insights for ML engineers and business teams.
+## Dataset
 
-## 💼 Business Context
+**Dataset**: Telco Customer Churn Dataset (IBM Watson Analytics)
+- **Type**: Structured tabular data
+- **Size**: 7,043 customer records, 21 features
+- **Source**: Publicly available telecommunications customer dataset
 
-**Use Case**: Customer Churn Prediction
+**Key Features**:
+- Demographics: gender, SeniorCitizen, Partner, Dependents
+- Service information: PhoneService, MultipleLines, InternetService, OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport, StreamingTV, StreamingMovies
+- Account details: tenure, Contract, PaperlessBilling, PaymentMethod
+- Billing: MonthlyCharges, TotalCharges
+- Target: Churn (binary classification)
 
-A machine learning model has been deployed to predict customer churn for a telecommunications company. Over time:
-- Customer demographics may shift
-- Service offerings may change
-- Economic conditions may affect behavior
-- The model's predictive power may degrade
+**Data Preprocessing**:
+- Converted TotalCharges from string to numeric (handled empty strings)
+- Filled missing TotalCharges with 0 (new customers)
+- Encoded categorical variables using LabelEncoder
+- Standardized numerical features using StandardScaler
+- Stratified train-test split (80-20) to maintain class distribution
 
-The system monitors:
-1. **Data Quality**: Are incoming features similar to training data?
-2. **Model Performance**: Is the model still accurate?
-3. **Drift Detection**: Has the data or concept changed?
-4. **Alerting**: When should we retrain?
+## Approach
 
-## ✨ Features
+The solution implements a multi-layered monitoring architecture:
 
-### Core Capabilities
+**Baseline Establishment**:
+- Train initial production model (Random Forest Classifier)
+- Capture baseline performance metrics (AUC, Accuracy, Precision, Recall, F1)
+- Store feature distributions for statistical comparison
 
-1. **Baseline Model Setup**
-   - Train initial ML model (Random Forest Classifier)
-   - Capture baseline metrics (AUC, Accuracy, Precision, Recall, F1)
-   - Save feature distributions for drift comparison
+**Drift Detection Strategy**:
+- **Data Drift**: Compare current feature distributions against baseline using Population Stability Index (PSI) and KL-Divergence
+- **Concept Drift**: Monitor performance degradation and error distribution changes over rolling windows
+- Statistical tests (Kolmogorov-Smirnov, Mann-Whitney U) for distribution comparisons
 
-2. **Data Drift Detection**
-   - **Population Stability Index (PSI)**: Measures distribution shifts
-   - **KL-Divergence**: Quantifies distribution differences
-   - **Statistical Tests**: Kolmogorov-Smirnov, Mann-Whitney U
-   - Feature-level drift detection and severity classification
+**Monitoring Pipeline**:
+- Batch-based monitoring with configurable window sizes
+- Real-time performance metric calculation
+- Threshold-based alerting system with severity classification
+- Automatic retraining recommendation logic
 
-3. **Concept Drift Detection**
-   - Performance decay analysis
-   - Error distribution changes
-   - Rolling window evaluation
-   - Distinguishes between data drift and concept drift
+**Training Strategy**:
+- Single train-test split for baseline establishment
+- Time-based simulation for production monitoring scenarios
+- Model comparison framework for retraining decisions
 
-4. **Performance Monitoring**
-   - Real-time metric tracking (AUC, Accuracy, Precision, Recall)
-   - Gradual degradation detection
-   - Silent failure identification
-   - Threshold violation alerts
+## Model & Techniques Used
 
-5. **Alerting & Retraining Logic**
-   - Configurable thresholds for drift and performance
-   - Multi-level alerting (HIGH, MEDIUM, LOW)
-   - Automatic retraining decision logic
-   - Model comparison and deployment recommendations
+**Machine Learning Model**:
+- Random Forest Classifier (scikit-learn)
+  - 100 estimators
+  - Max depth 10 (prevent overfitting)
+  - Handles mixed feature types effectively
 
-6. **Dashboards & Reporting**
-   - Static visualizations (matplotlib/seaborn)
-   - Interactive Streamlit dashboard
-   - Executive summaries
-   - Detailed technical reports
+**Statistical Techniques**:
+- **Population Stability Index (PSI)**: Industry standard for detecting distribution shifts
+- **KL-Divergence**: Information-theoretic measure of distribution differences
+- **Kolmogorov-Smirnov Test**: Non-parametric test for distribution equality
+- **Mann-Whitney U Test**: Non-parametric test for comparing distributions
 
-## 📁 Project Structure
+**Libraries & Frameworks**:
+- Python 3.8+
+- scikit-learn: Model training and evaluation
+- pandas, numpy: Data manipulation and numerical computations
+- scipy: Statistical tests and calculations
+- matplotlib, seaborn: Static visualizations
+- streamlit, plotly: Interactive dashboard development
+- pyyaml: Configuration management
+
+## Evaluation Metrics
+
+**Primary Metrics**:
+- **AUC-ROC**: Measures model's ability to distinguish between classes (chosen for class imbalance)
+- **Accuracy**: Overall correctness of predictions
+- **Precision**: Proportion of positive predictions that are correct
+- **Recall**: Proportion of actual positives correctly identified
+- **F1-Score**: Harmonic mean of precision and recall
+
+**Drift Detection Metrics**:
+- **PSI Score**: Threshold of 0.2 indicates significant drift
+- **KL-Divergence**: Threshold of 0.5 for distribution differences
+- **Performance Decay**: 5% drop in AUC triggers concept drift alert
+
+**Why These Metrics**:
+- AUC-ROC is robust to class imbalance (churn rates typically 15-30%)
+- PSI is widely adopted in financial services and ML operations
+- Performance-based concept drift detection directly ties to business impact
+
+**Validation Strategy**:
+- Baseline metrics calculated on held-out test set
+- Monitoring uses simulated production batches
+- Thresholds validated through iterative tuning
+
+## Results
+
+**Baseline Model Performance**:
+- AUC: 0.8349
+- Accuracy: 0.7956
+- Precision: 0.6453
+- Recall: 0.5107
+- F1-Score: 0.5701
+
+**Monitoring Capabilities**:
+- Successfully detects data drift in all 19 features with PSI scores ranging from 2.35 to 7.05
+- Concept drift detection triggers when AUC drops below 0.79 (5% degradation threshold)
+- Alert system generates severity-classified notifications (HIGH, MEDIUM, LOW)
+- Retraining recommendations provided based on configurable conditions
+
+**Key Insights**:
+- Feature-level drift detection allows identification of specific problematic features
+- Performance metrics can remain stable despite data drift (data drift detected, no concept drift)
+- Rolling window evaluation captures gradual degradation patterns
+- Threshold configuration is critical for reducing false positive alerts
+
+**Limitations**:
+- Current implementation uses synthetic baseline distributions for PSI calculation (normal approximation)
+- Monitoring assumes batch processing; real-time streaming requires additional architecture
+- Alert system is file-based; production deployments need database integration
+- Model comparison logic is simplified; production systems should use more sophisticated A/B testing
+
+## Business / Real-World Impact
+
+**Use Cases**:
+- **Production ML Monitoring**: Continuously monitor deployed models in production environments
+- **Regulatory Compliance**: Financial services and healthcare industries require model monitoring for regulatory compliance
+- **Cost Optimization**: Early detection prevents costly bad predictions and business decisions
+- **Model Lifecycle Management**: Systematic approach to model refresh and retraining decisions
+
+**Beneficiaries**:
+- **ML Engineers**: Automated monitoring reduces manual monitoring overhead
+- **Data Science Teams**: Actionable alerts enable proactive model maintenance
+- **Business Stakeholders**: Executive dashboards provide model health visibility
+- **Operations Teams**: Clear retraining recommendations support operational decisions
+
+**Decision Support**:
+- Retraining decisions based on quantitative drift metrics rather than time-based schedules
+- Resource allocation prioritization (retrain models with highest drift/performance degradation)
+- Risk assessment through drift severity classification
+- Performance SLA monitoring through threshold-based alerting
+
+## Project Structure
 
 ```
-ML Model Monitoring & Drift Detection/
+ML-Model-Monitoring-Drift-Detection/
 ├── config/
-│   └── config.yaml              # Configuration file with thresholds
+│   └── config.yaml              # Configuration file with thresholds and settings
 ├── data/
 │   └── WA_Fn-UseC_-Telco-Customer-Churn.csv
 ├── src/
 │   ├── __init__.py
-│   ├── utils.py                 # Utility functions
-│   ├── model_training.py        # Baseline model training
-│   ├── drift_detection.py      # Data & concept drift detection
-│   ├── performance_monitoring.py  # Performance tracking
-│   ├── alerts.py                # Alerting & retraining logic
+│   ├── utils.py                 # Utility functions for config, file I/O
+│   ├── model_training.py        # Baseline model training and distribution capture
+│   ├── drift_detection.py       # Data drift (PSI, KL-Divergence) and concept drift detection
+│   ├── performance_monitoring.py # Performance tracking and degradation detection
+│   ├── alerts.py                # Alerting system and retraining logic
 │   ├── monitoring_pipeline.py   # Main orchestration pipeline
-│   ├── dashboard.py             # Static visualization & reporting
+│   ├── dashboard.py             # Static visualization and reporting
 │   └── streamlit_dashboard.py   # Interactive web dashboard
 ├── models/                      # Saved models (generated)
-├── artifacts/                   # Baseline metrics, distributions (generated)
-├── dashboards/                  # Generated plots and reports (generated)
-├── logs/                        # Log files (generated)
+│   ├── baseline_model.pkl
+│   └── preprocessors.pkl
+├── artifacts/                   # Monitoring artifacts (generated)
+│   ├── baseline_metrics.json
+│   ├── baseline_distributions.json
+│   ├── performance_history.json
+│   └── alerts_history.json
+├── dashboards/                  # Generated visualizations (generated)
+│   ├── feature_drift_*.png
+│   └── performance_trends_*.png
+├── logs/                        # Application logs (generated)
 ├── main.py                      # Main execution script
 ├── run_dashboard.py             # Streamlit dashboard launcher
 ├── requirements.txt             # Python dependencies
@@ -120,569 +202,143 @@ ML Model Monitoring & Drift Detection/
 └── README.md                    # This file
 ```
 
-## 🚀 Installation
+## How to Run This Project
 
 ### Prerequisites
-
 - Python 3.8 or higher
 - pip package manager
 
-### Setup
+### Installation Steps
 
-1. **Clone or navigate to the project directory**
+1. **Clone the repository**:
+```bash
+git clone https://github.com/MBGIRISH/ML-Model-Monitoring-Drift-Detection.git
+cd ML-Model-Monitoring-Drift-Detection
+```
 
-2. **Create a virtual environment (recommended)**
+2. **Create and activate virtual environment**:
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. **Install dependencies**
+3. **Install dependencies**:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Verify installation**
-```bash
-python3 -c "import pandas, numpy, sklearn, scipy, matplotlib, seaborn, yaml, streamlit, plotly; print('✓ All dependencies installed!')"
-```
-
-## 🏃 Quick Start
-
-### Step 1: Run the Monitoring Pipeline
-
+4. **Run the monitoring pipeline**:
 ```bash
 python3 main.py
 ```
 
 This will:
-1. Train a baseline model (if not already trained)
-2. Initialize the monitoring pipeline
-3. Simulate production monitoring with time-based data splits
-4. Detect drift and performance issues
-5. Generate dashboards and reports
+- Train the baseline model (if not already trained)
+- Initialize monitoring components
+- Simulate production monitoring with time-based data splits
+- Generate monitoring results, alerts, and reports
 
-### Step 2: Launch Interactive Dashboard
-
-```bash
-# Option 1: Direct Streamlit command
-streamlit run src/streamlit_dashboard.py
-
-# Option 2: Using the launcher script
-python3 run_dashboard.py
-```
-
-The dashboard will automatically open in your browser at `http://localhost:8501`
-
-### Expected Output
-
-```
-================================================================================
-ML MODEL MONITORING & DRIFT DETECTION PLATFORM
-================================================================================
-
-================================================================================
-STEP 1: TRAINING BASELINE MODEL
-================================================================================
-✓ Baseline model trained and saved
-
-================================================================================
-STEP 2: INITIALIZING MONITORING PIPELINE
-================================================================================
-✓ Monitoring pipeline initialized
-
-================================================================================
-STEP 3: SIMULATING PRODUCTION MONITORING
-================================================================================
---- Monitoring Batch 1/5 ---
-  Data Drift: DETECTED
-  Concept Drift: NONE
-  Performance - AUC: 0.8975, Accuracy: 0.8232
-  Alerts: 20
-
-================================================================================
-STEP 4: GENERATING DASHBOARDS AND REPORTS
-================================================================================
-✓ Feature drift plots generated
-✓ Performance trends plots generated
-✓ Reports generated
-```
-
-## ⚙️ Configuration
-
-Edit `config/config.yaml` to customize thresholds and behavior:
-
-```yaml
-# Data Drift Thresholds
-data_drift:
-  psi_threshold: 0.2          # PSI > 0.2 indicates significant drift
-  kl_divergence_threshold: 0.5
-  feature_drift_threshold: 0.15
-  window_size: 1000
-
-# Concept Drift Thresholds
-concept_drift:
-  performance_decay_threshold: 0.05  # 5% drop in performance
-  auc_drop_threshold: 0.03
-  error_rate_increase: 0.1
-  rolling_window_size: 500
-
-# Performance Thresholds
-performance:
-  min_auc: 0.70
-  min_accuracy: 0.75
-  alert_on_degradation: true
-  evaluation_window: 100
-
-# Alerting Configuration
-alerts:
-  enabled: true
-  drift_alert_threshold: 0.2
-  performance_alert_threshold: 0.05
-  log_level: "INFO"
-
-# Retraining Configuration
-retraining:
-  auto_retrain: false
-  min_samples_for_retrain: 1000
-  retrain_on_drift: true
-  retrain_on_performance_drop: true
-  model_comparison_metric: "auc"
-```
-
-### Threshold Guidelines
-
-**PSI Thresholds**:
-- `< 0.1`: No significant change
-- `0.1 - 0.2`: Moderate change (monitor)
-- `≥ 0.2`: Significant drift (action required)
-
-**Performance Thresholds**:
-- Based on business requirements
-- Consider cost of false positives/negatives
-- Account for model uncertainty
-
-## 🔧 Components
-
-### 1. Baseline Model Training (`src/model_training.py`)
-
-Trains and saves the initial production model with baseline metrics and feature distributions.
-
-**Usage**:
-```python
-from src.model_training import BaselineModelTrainer
-from src.utils import load_config
-
-config = load_config()
-trainer = BaselineModelTrainer(config)
-trainer.train("data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
-trainer.save_baseline("models/", "artifacts/")
-```
-
-### 2. Data Drift Detection (`src/drift_detection.py`)
-
-Detects changes in feature distributions using PSI, KL-Divergence, and statistical tests.
-
-**Usage**:
-```python
-from src.drift_detection import DataDriftDetector
-
-detector = DataDriftDetector("artifacts/baseline_distributions.json", config)
-drift_results = detector.detect_drift(current_data)
-```
-
-### 3. Concept Drift Detection (`src/drift_detection.py`)
-
-Detects changes in feature-target relationships by analyzing performance degradation.
-
-**Usage**:
-```python
-from src.drift_detection import ConceptDriftDetector
-
-detector = ConceptDriftDetector("artifacts/baseline_metrics.json", config)
-concept_drift = detector.detect_concept_drift(current_metrics, predictions, actual)
-```
-
-### 4. Performance Monitoring (`src/performance_monitoring.py`)
-
-Tracks model performance over time and identifies degradation patterns.
-
-**Usage**:
-```python
-from src.performance_monitoring import PerformanceMonitor
-
-monitor = PerformanceMonitor("artifacts/baseline_metrics.json", config)
-metrics = monitor.evaluate_performance(y_true, y_pred, y_pred_proba)
-violations = monitor.check_performance_thresholds(metrics)
-```
-
-### 5. Alerting System (`src/alerts.py`)
-
-Triggers alerts based on drift and performance issues with severity classification.
-
-**Alert Types**:
-- `DATA_DRIFT`: High PSI in features
-- `CONCEPT_DRIFT`: Performance degradation
-- `PERFORMANCE_THRESHOLD_VIOLATION`: Metrics below thresholds
-- `ERROR_RATE_INCREASE`: Significant error rate increase
-
-**Usage**:
-```python
-from src.alerts import AlertManager
-
-alert_manager = AlertManager(config)
-alerts = alert_manager.check_data_drift_alerts(drift_results)
-```
-
-### 6. Retraining Logic (`src/alerts.py`)
-
-Decides when to retrain the model and compares new models with baseline.
-
-**Usage**:
-```python
-from src.alerts import RetrainingManager
-
-retrain_manager = RetrainingManager(config)
-decision = retrain_manager.should_retrain(
-    drift_alerts, concept_drift_detected, performance_degraded, n_samples
-)
-```
-
-### 7. Monitoring Pipeline (`src/monitoring_pipeline.py`)
-
-Orchestrates all monitoring components for end-to-end workflow.
-
-**Usage**:
-```python
-from src.monitoring_pipeline import MonitoringPipeline
-
-pipeline = MonitoringPipeline()
-pipeline.initialize()
-results = pipeline.monitor_batch(data, ground_truth)
-```
-
-### 8. Static Dashboard (`src/dashboard.py`)
-
-Generates static visualizations and reports.
-
-**Usage**:
-```python
-from src.dashboard import MonitoringDashboard
-
-dashboard = MonitoringDashboard(config, "artifacts/")
-dashboard.plot_feature_drift(drift_results)
-dashboard.plot_performance_trends(performance_history)
-dashboard.create_executive_summary(results)
-```
-
-## 📊 Streamlit Dashboard
-
-### Launching the Dashboard
-
+5. **Launch interactive dashboard** (optional):
 ```bash
 streamlit run src/streamlit_dashboard.py
 ```
 
-### Dashboard Features
-
-#### Overview Tab
-- **Model Health Metrics**: Current AUC, Accuracy, Precision, Recall, F1-Score
-- **Baseline Comparison**: Side-by-side comparison with baseline metrics
-- **Drift Status**: Quick view of data drift and concept drift detection
-- **Confusion Matrix**: Latest model predictions visualization
-
-#### Performance Tab
-- **Interactive Performance Charts**: 
-  - AUC, Accuracy, Precision, Recall trends over time
-  - Baseline reference lines
-  - Hover tooltips for detailed values
-- **Performance History Table**: Complete performance metrics history
-
-#### Drift Detection Tab
-- **Feature Drift Visualization**: 
-  - PSI scores for all features
-  - Color-coded by drift detection status
-  - Threshold indicators
-- **Top Drifted Features**: Table showing features with highest drift
-- **Concept Drift Analysis**: 
-  - Performance degradation indicators
-  - Error rate analysis
-  - Severity classification
-
-#### Alerts Tab
-- **Alert Summary**: 
-  - High, Medium, Low severity breakdown
-  - Color-coded alert cards
-- **Alert Statistics**: 
-  - Pie chart: Alerts by type
-  - Bar chart: Alerts by severity
-- **Complete Alert History**: Expandable table with all alerts
-
-#### Reports Tab
-- **Retraining Recommendations**: 
-  - Should retrain decision
-  - Priority level
-  - Conditions met
-- **Executive Summary**: 
-  - Model health overview
-  - Key metrics
-  - Downloadable report
-
-### Refreshing Data
-
-The dashboard caches data for performance. To refresh:
-1. Click the **"Reload Data"** button in the sidebar
-2. Or restart the Streamlit app (Ctrl+C and run again)
-
-### Accessing Remotely
-
-To access the dashboard from another machine:
-
-```bash
-streamlit run src/streamlit_dashboard.py --server.address 0.0.0.0
-```
-
-Then access via: `http://<your-ip>:8501`
-
-**Note**: Only do this on trusted networks for security.
-
-## 📊 Understanding Drift
-
-### Data Drift vs Concept Drift
-
-**Data Drift (Covariate Shift)**:
-- **Definition**: Changes in the distribution of input features P(X)
-- **Example**: Customer age distribution shifts, monthly charges increase
-- **Detection**: PSI, KL-Divergence, statistical tests
-- **Impact**: Model may still work if P(Y|X) is stable
-
-**Concept Drift**:
-- **Definition**: Changes in the relationship between features and target P(Y|X)
-- **Example**: Same features, but churn behavior changes (e.g., economic downturn)
-- **Detection**: Performance degradation, error rate increases
-- **Impact**: Model predictions become less accurate
-
-### When to Retrain?
-
-The platform recommends retraining when:
-1. **High Data Drift**: PSI > 0.2 in multiple features
-2. **Concept Drift**: AUC drops by > 5%
-3. **Performance Degradation**: Metrics below thresholds
-4. **Sufficient Data**: At least 1000 new samples available
-
-## 📈 Outputs
-
-### Generated Files
-
-1. **Models** (`models/`):
-   - `baseline_model.pkl`: Trained model
-   - `preprocessors.pkl`: Feature encoders and scaler
-
-2. **Artifacts** (`artifacts/`):
-   - `baseline_metrics.json`: Baseline performance metrics
-   - `baseline_distributions.json`: Feature distributions
-   - `monitoring_results_*.json`: Per-batch monitoring results
-   - `performance_history.json`: Performance over time
-   - `alerts_history.json`: All generated alerts
-   - `retraining_history.json`: Retraining decisions
-
-3. **Dashboards** (`dashboards/`):
-   - `feature_drift_*.png`: Feature drift visualizations
-   - `performance_trends_*.png`: Performance over time charts
-   - `executive_summary_*.txt`: Business-friendly summary
-   - `detailed_report_*.txt`: Technical detailed report
-
-4. **Logs** (`logs/`):
-   - `monitoring_YYYYMMDD.log`: Daily log files
-
-## 🚀 Production Deployment
-
-### Production Considerations
-
-1. **Data Storage**: 
-   - Replace JSON files with database (PostgreSQL, MongoDB)
-   - Use time-series databases for performance metrics
-   - Implement data retention policies
-
-2. **Scheduled Monitoring**:
-   - Set up cron jobs or scheduled tasks
-   - Monitor batches at regular intervals (hourly, daily)
-   - Automate retraining pipeline
-
-3. **Alerting Integration**:
-   - Connect to Slack, email, or PagerDuty
-   - Implement escalation policies
-   - Create alert routing rules
-
-4. **Authentication & Security**:
-   - Add authentication to Streamlit dashboard
-   - Use HTTPS in production
-   - Implement role-based access control
-
-5. **Model Versioning**:
-   - Use MLflow or similar for model versioning
-   - Track model lineage
-   - Implement A/B testing for new models
-
-6. **Scalability**:
-   - Use distributed computing for large datasets
-   - Implement sampling for drift detection
-   - Cache baseline distributions
-
-### Docker Deployment
-
-Example `Dockerfile`:
-
-```dockerfile
-FROM python:3.9-slim
-
-WORKDIR /app
-
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application
-COPY . .
-
-# Expose Streamlit port
-EXPOSE 8501
-
-# Health check
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
-
-# Run Streamlit
-CMD ["streamlit", "run", "src/streamlit_dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]
-```
-
-Build and run:
-```bash
-docker build -t ml-monitoring .
-docker run -p 8501:8501 ml-monitoring
-```
-
-### Cloud Deployment
-
-**Streamlit Cloud**:
-1. Push code to GitHub
-2. Connect to Streamlit Cloud
-3. Deploy directly from repository
-
-**AWS/GCP/Azure**:
-1. Containerize application
-2. Deploy to container service (ECS, Cloud Run, Container Instances)
-3. Set up load balancer and auto-scaling
-
-## 🐛 Troubleshooting
-
-### Dashboard shows "No data available"
-
-**Solution**: Run `python3 main.py` first to generate monitoring data
-
-### Import errors
-
-**Solution**: 
-- Ensure virtual environment is activated
-- Check you're in the project root directory
-- Verify all dependencies are installed: `pip install -r requirements.txt`
-
-### Port already in use
-
-**Solution**: 
-```bash
-# Kill existing Streamlit process
-pkill -f streamlit
-
-# Or use a different port
-streamlit run src/streamlit_dashboard.py --server.port 8502
-```
-
-### Charts not displaying
-
-**Solution**: 
-- Check browser console for JavaScript errors
-- Ensure Plotly is installed: `pip install plotly`
-- Clear browser cache
-- Check browser compatibility
-
-### Performance issues
-
-**Solution**:
-- Use data sampling for large datasets
-- Enable caching in Streamlit
-- Consider using a database instead of JSON files
-- Optimize drift detection calculations
-
-## 🛠️ Customization
-
-### Adding New Metrics
-
-Edit `src/performance_monitoring.py`:
-```python
-def evaluate_performance(self, y_true, y_pred, y_pred_proba):
-    metrics = {
-        # ... existing metrics
-        'custom_metric': calculate_custom_metric(y_true, y_pred)
-    }
-    return metrics
-```
-
-### Adding New Drift Detection Methods
-
-Edit `src/drift_detection.py`:
-```python
-def calculate_custom_drift_metric(self, expected, actual):
-    # Your custom drift calculation
-    return drift_score
-```
-
-### Custom Alerting
-
-Edit `src/alerts.py`:
-```python
-def check_custom_alerts(self, monitoring_results):
-    # Your custom alert logic
-    return alerts
-```
-
-## 📝 Best Practices
-
-1. **Threshold Selection**:
-   - Set thresholds based on business impact
-   - Review alerts regularly to reduce false positives
-   - Document threshold decisions
-
-2. **Monitoring Schedule**:
-   - Monitor at regular intervals (daily recommended)
-   - Adjust frequency based on data volume
-   - Set up automated monitoring
-
-3. **Retraining Strategy**:
-   - Maintain a retraining schedule (e.g., monthly)
-   - Document all retraining decisions
-   - Compare models before deployment
-
-4. **Data Management**:
-   - Implement data retention policies
-   - Archive old monitoring results
-   - Keep baseline distributions for comparison
-
-5. **Documentation**:
-   - Document model changes
-   - Track drift events and responses
-   - Maintain runbooks for common issues
-
-## 📄 License
-
-This project is provided as-is. Feel free to use it for your own projects.
-
-## 🙏 Acknowledgments
-
-- Dataset: Telco Customer Churn (publicly available dataset)
-- Methods: PSI and KL-Divergence are standard drift detection techniques used in the industry
-- Thanks to the ML community for sharing best practices on model monitoring
+The dashboard will be available at `http://localhost:8501`
+
+### Configuration
+
+Edit `config/config.yaml` to customize thresholds:
+- Data drift thresholds (PSI, KL-Divergence)
+- Performance thresholds (min AUC, accuracy)
+- Alert sensitivity levels
+- Retraining decision criteria
+
+## Dashboard Screenshots
+
+### Overview Dashboard
+The overview tab provides a comprehensive view of model health, including current performance metrics compared to baseline, drift status indicators, and a confusion matrix visualization.
+
+![Overview Dashboard](dashboards/feature_drift_20260108_113126.png)
+
+### Performance Monitoring
+Performance trends are tracked over time with interactive charts showing AUC, Accuracy, Precision, and Recall. Baseline reference lines enable quick comparison of current performance against established benchmarks.
+
+![Performance Dashboard](dashboards/performance_trends_20260108_113126.png)
+
+### Drift Detection Analysis
+Feature-level drift detection visualizes PSI scores for all features, with color-coding to indicate drift severity. Features are sorted by drift magnitude, making it easy to identify the most problematic features.
+
+![Drift Detection Dashboard](dashboards/feature_drift_20260108_112158.png)
+
+## Future Improvements
+
+**Model Enhancements**:
+- Implement incremental drift detection for streaming data scenarios
+- Add support for regression models and multi-class classification
+- Integrate model-agnostic drift detection methods (e.g., MMD, Wasserstein distance)
+- Implement adaptive threshold adjustment based on historical patterns
+
+**Data Improvements**:
+- Replace synthetic baseline distribution generation with stored empirical distributions
+- Add support for high-dimensional feature spaces with dimensionality reduction
+- Implement data quality checks (missing values, outliers, schema validation)
+- Support for time-series feature drift detection
+
+**Deployment & Scaling**:
+- Database integration (PostgreSQL, MongoDB) for artifact storage
+- Real-time monitoring pipeline using Apache Kafka or similar streaming platforms
+- Containerization with Docker for easy deployment
+- Integration with MLflow for model versioning and experiment tracking
+- Cloud deployment templates (AWS, GCP, Azure)
+
+**Alerting Enhancements**:
+- Integration with external alerting systems (PagerDuty, Slack, email)
+- Alert fatigue reduction through intelligent grouping and prioritization
+- Custom alert rules for domain-specific scenarios
+- Alert escalation policies based on drift persistence
+
+## Key Learnings
+
+**Technical Learnings**:
+- PSI calculation requires careful binning strategy; bin count significantly affects sensitivity
+- Synthetic baseline distribution generation (normal approximation) works for initial implementation but empirical distributions are more accurate
+- Performance monitoring requires sufficient sample sizes per evaluation window to reduce variance
+- Concept drift detection through performance metrics is more reliable than feature-based methods when ground truth labels are available
+
+**Data Science Learnings**:
+- Threshold selection is domain-specific and requires iteration based on business impact
+- False positive alerts can be costly; conservative thresholds with high precision are preferable
+- Model monitoring is as important as model development; monitoring infrastructure should be built alongside models
+- Visualization is critical for stakeholder communication; both technical and executive dashboards serve different needs
+- Retraining decisions should consider multiple factors (drift severity, performance degradation, data availability, business context)
+
+**Production Considerations**:
+- Configuration management enables quick threshold adjustments without code changes
+- Modular architecture allows independent updates to monitoring components
+- Logging and artifact storage are essential for audit trails and debugging
+- Interactive dashboards reduce the need for custom reporting scripts
+
+## References
+
+**Datasets**:
+- Telco Customer Churn Dataset: IBM Watson Analytics (publicly available)
+
+**Papers & Articles**:
+- Population Stability Index (PSI) methodology widely used in financial services for model monitoring
+- Concept drift detection techniques from "Learning Under Concept Drift: An Overview" (Gama et al.)
+- Statistical methods for distribution comparison (Kolmogorov-Smirnov, Mann-Whitney U tests)
+
+**Tools & Libraries**:
+- scikit-learn: Machine learning model implementation
+- scipy: Statistical functions and tests
+- streamlit: Interactive dashboard framework
+- plotly: Interactive visualization library
+
+**Industry Practices**:
+- Model monitoring best practices from ML Operations (MLOps) communities
+- Drift detection thresholds based on industry standards (PSI > 0.2 indicates significant drift)
+- Production ML monitoring patterns from cloud ML platforms (AWS SageMaker, Google Vertex AI, Azure ML)
 
 ---
 
-**Author**: M B GIRISH | **Date**: January 2026  
-**Built for Production ML Teams** | *Answering "What happens after deployment?"*
+**Repository**: [https://github.com/MBGIRISH/ML-Model-Monitoring-Drift-Detection](https://github.com/MBGIRISH/ML-Model-Monitoring-Drift-Detection)
